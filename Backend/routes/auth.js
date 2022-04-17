@@ -3,8 +3,10 @@ const router = express.Router();
 const User = require("../models/Users");
 const { body, validationResult } = require("express-validator");
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
-// Create a User using POST "/api/auth/registeruser".
+const JWT_SECRET = "abrarMERNAPP";
+// Create a User using POST "/api/auth/registeruser". no login required
 router.post(
   "/registeruser",
   [
@@ -38,12 +40,19 @@ router.post(
         email: req.body.email,
         password: securePassword,
       });
-
-      res.json(user);
+      const data = {
+        user:{
+          id: user.id
+        }
+      }
+      const authToken = jwt.sign(data,JWT_SECRET);
+      
+      // res.json(user);
+      res.json({authToken});
     } 
     catch (error) {
       console.error(error.message);
-      res.status(500).send("Somethind happening wrong");
+      res.status(500).send("Internal Server Error");
     }
     // .then(user => res.json(user))
     // .catch(err =>{
@@ -52,4 +61,48 @@ router.post(
   }
 );
 
+
+
+
+
+// Authenticate a User using POST "/api/auth/login". no login required
+router.post('/login',
+[
+ 
+  body("email", "Enter valid Email").isEmail(),
+  body("password", "Password cannot be blank").exists(),
+],
+async (req, res) => {
+  //Checking validation
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+const {email, password} = req.body;
+try {
+  let user = await User.findOne({email});
+  if(!user){
+    return res.status(400).json("Please Enter valid cretentials");
+  }
+  const passwordCompare = await bcrypt.compare(password,user.password);
+
+  if(!passwordCompare){
+    return res.status(400).json("Please Enter valid cretentials");
+  }
+
+  const data = {
+    user: {
+      id: user.id
+    }
+  }
+  const authToken = jwt.sign(data,JWT_SECRET);
+      res.json({authToken});
+} catch (error) {
+  console.error(error.message);
+      res.status(500).send("Internal Server Error");
+}
+
+
+});
 module.exports = router;

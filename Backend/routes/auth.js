@@ -4,9 +4,13 @@ const User = require("../models/Users");
 const { body, validationResult } = require("express-validator");
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const fetchUser = require("../middleware/fetchUser");
+
 
 const JWT_SECRET = "abrarMERNAPP";
-// Create a User using POST "/api/auth/registeruser". no login required
+
+
+// Route 1: Create a User using POST "/api/auth/registeruser". no login required
 router.post(
   "/registeruser",
   [
@@ -65,7 +69,7 @@ router.post(
 
 
 
-// Authenticate a User using POST "/api/auth/login". no login required
+// Route 2: Authenticate a User using POST "/api/auth/login". no login required
 router.post('/login',
 [
  
@@ -103,6 +107,23 @@ try {
       res.status(500).send("Internal Server Error");
 }
 
+});
+
+
+// Route 3: Get Logedin user data  using POST "/api/auth/getData". login required
+router.post('/getData', fetchUser,
+async (req, res) => {
+  
+try {
+  userid = req.user.id;
+  const user = await User.findById(userid).select("-password");
+  res.send(user);
+
+} catch (error) {
+  console.error(error.message);
+      res.status(500).send("Internal Server Error");
+}
 
 });
+
 module.exports = router;
